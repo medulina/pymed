@@ -62,9 +62,22 @@ var app = new Vue({
   data: {
     subjects: [],
     search: "",
+    currentSubject: {},
     columns: ['subject_id', 'slice_direction',
               'voxel_threshold', 'image_filename',
               'mask_filename',],
+    currentTiles: {},
+  },
+  methods: {
+    setSubject: function(subject_obj){
+      this.currentSubject = subject_obj
+      a.remove("subject_id")
+      a.set("subject_id", subject_obj.subject_id)
+      //a.go()
+      window.history.pushState({path:a.url},'',a.url);
+      load_tiles(subject_obj.subject_id)
+
+    }
   }
 })
 
@@ -92,22 +105,26 @@ $('#upload_form').on("submit", function(e) {
 function update_manifest(){
   $.getJSON("/uploads/uploads.json", function(data){
     app.subjects = data
+    Object.keys(params).indexOf("subject_id") >= 0 ? set_subject(params["subject_id"]) : null
   })
 }
 
 update_manifest()
 
-// bootstrap the demo
-var demo = new Vue({
-  el: '#demo',
-  data: {
-    searchQuery: '',
-    gridColumns: ['name', 'power'],
-    gridData: [
-      { name: 'Chuck Norris', power: Infinity },
-      { name: 'Bruce Lee', power: 9000 },
-      { name: 'Jackie Chan', power: 7000 },
-      { name: 'Jet Li', power: 8000 }
-    ]
-  }
-})
+var a = new QS()
+var params = a.getAll()
+
+function set_subject(subject_id){
+  var sub = _.find(app.subjects, function(v){
+    return v.subject_id == subject_id ? v: null
+  })
+  app.currentSubject = sub
+  load_tiles(subject_id)
+}
+
+function load_tiles(subject_id){
+  $.get("/tiles/pngs/"+subject_id, function(data){
+  	console.log(data)
+    app.currentTiles = data
+  })
+}

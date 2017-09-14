@@ -3,6 +3,8 @@ from werkzeug import secure_filename
 import os
 from generate_tiles import create_tiles, save_json_pretty
 from nipype.utils.filemanip import load_json
+from glob import glob
+import base64
 
 app = Flask(__name__)
 # Got from https://www.tutorialspoint.com/flask/flask_file_uploading.htm
@@ -10,16 +12,39 @@ app = Flask(__name__)
 # Send the index.html file
 @app.route('/')
 def main():
-   return send_from_directory("web/",'index.html')
+    return send_from_directory("web/",'index.html')
+
+@app.route('/subjects')
+def up():
+    return send_from_directory("web/",'subjects.html')
 
 # Send any js/ css/ files
 @app.route('/<path:ptype>/<path:pfile>')
 def send_file(ptype, pfile):
-   return send_from_directory(os.path.join("web", ptype) ,pfile)
+    return send_from_directory(os.path.join("web", ptype) ,pfile)
 
 @app.route('/uploads/<path:pfile>')
 def send_manifest(pfile):
-   return send_from_directory("uploads", pfile)
+    return send_from_directory("uploads", pfile)
+
+@app.route('/tiles/pngs/<subject_id>')
+def send_pngs(subject_id):
+    pngs = sorted(glob(os.path.join("tiles", subject_id, "*", "*.png")))
+    data = {"ax": [], "sag": [], "cor": []}
+    for p in pngs:
+        entry = {}
+        sd = p.split("/")[-2]
+        sliceNo = p.split("/")[-1].replace(".png", "").split("_")[-1]
+        with open(p, 'rb') as img:
+            encoded_string = base64.b64encode(img.read()).decode('utf-8')
+            entry["slice"] = sliceNo
+            entry["png"] = encoded_string
+            entry["sliceNice"] = "%03d" % int(sliceNo)
+        data[sd].append(entry)
+
+
+    return jsonify(data)
+
 
 # Function to create tiles on upload
 @app.route('/tiler', methods = ['POST'])
