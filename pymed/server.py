@@ -5,6 +5,8 @@ from generate_tiles import create_tiles, save_json_pretty
 from nipype.utils.filemanip import load_json
 from glob import glob
 import base64
+import numpy as np
+import nibabel as nib
 
 app = Flask(__name__)
 # Got from https://www.tutorialspoint.com/flask/flask_file_uploading.htm
@@ -27,6 +29,10 @@ def send_file(ptype, pfile):
 def send_manifest(pfile):
     return send_from_directory("uploads", pfile)
 
+@app.route('/uploads/<path:pfile>/<path:item>')
+def send_iamges(pfile, item):
+    return send_from_directory("uploads", os.path.join(pfile, item))
+
 @app.route('/tiles/pngs/<subject_id>')
 def send_pngs(subject_id):
     pngs = sorted(glob(os.path.join("tiles", subject_id, "*", "*.png")))
@@ -44,6 +50,56 @@ def send_pngs(subject_id):
 
 
     return jsonify(data)
+
+def dict2arr(image_data, mask_data):
+    mask_arr = np.zeros((image_data.shape[0], image_data.shape[1]))
+    for ikey, vald in mask_data.items():
+        for jkey, val in vald.items():
+            mask_arr[int(jkey), int(ikey)] = val
+    return mask_arr
+
+@app.route('/getAggNii', methods = ['POST'])
+def getAggNii():
+    data = request.json
+
+    # find our subject and their base image
+    subject = data[0]["subject"]
+    subject_nii_file = [b for b in glob("uploads/{}/*.nii.gz".format(subject)) if "base" in b][0]
+
+    # load image and convert to IPL
+    img_data = nib.load(subject_nii_file)
+    aff = img_data.affine
+    orientation = nib.orientations.io_orientation(aff)
+    print("original image orientation is", "".join(nib.orientations.aff2axcodes(aff)))
+    print("now converting to IPL")
+    def toIPL(data):
+        data_RAS = nib.orientations.apply_orientation(data, orientation) #In RAS
+        return nib.orientations.apply_orientation(data_RAS, nib.orientations.axcodes2ornt("IPL")) #IPL is its own inverse
+
+    def fromIPL(data):
+        xfm = nib.orientations.ornt_transform(nib.orientations.axcodes2ornt("IPL"), orientation)
+        return nib.orientations.apply_orientation(data,xfm)
+
+    data_IPL = toIPL(img_data.get_data())
+    slicer = {"ax": 0, "cor": 1, "sag": 2}
+
+    #create a new image with data
+    crowd_data = np.zeros(data_IPL.shape)
+    for d in data:
+        all_data_slicer = [slice(None), slice(None), slice(None)]
+        all_data_slicer[slicer[d["slice_direction"]]] = d["slice"]
+        crowd_data[all_data_slicer] = dict2arr(crowd_data[all_data_slicer], d["agg"])
+
+    # save the Nifti1Imag
+    # TODO: this affine is WRONG! AK FIX!!
+
+    crowd_data = fromIPL(crowd_data)
+
+    out_file = os.path.join("uploads", subject, "crowd.nii.gz")
+    nib.Nifti1Image(crowd_data, aff).to_filename(out_file)
+
+    return out_file
+
 
 
 # Function to create tiles on upload
@@ -80,7 +136,7 @@ def tile_function():
         if not os.path.exists(base_path):
             os.makedirs(base_path)
 
-        image_savepath = os.path.join(base_path, ptid+'_image.nii.gz')
+        image_savepath = os.path.join(base_path, ptid+'_base.nii.gz')
         mask_savepath = os.path.join(base_path, ptid+'_mask.nii.gz')
         f_image.save(image_savepath)
         f_mask.save(mask_savepath)
@@ -110,6 +166,29 @@ def tile_function():
             return jsonify({"subjects": upload_manifest})
         else:
             return "Error: Please upload a valid file"
+
+def update_manifest(vthresh=100):
+    subjects = [s.split("/")[-1] for s in glob("uploads/*")]
+    manifest = []
+    for s in subjects:
+        imgs = glob(os.path.join("uploads", s, "*"))
+        tiles = glob(os.path.join("tiles",s,"*"))
+        tile_dirs = [t.split("/")[-1] for t in tiles]
+        mask = [m for m in imgs if "mask" in m][0]
+        base = [b for b in imgs if "base" in b][0]
+
+        entry = {'subject_id': s,
+               'mask_filename': mask,
+               'image_filename': base,
+               'mask_server_path': mask,
+               'image_server_path': base,
+               'voxel_threshold': vthresh,
+               'slice_direction': ",".join(tile_dirs)}
+        manifest.append(entry)
+
+    save_json_pretty(os.path.join("uploads",'uploads.json'), manifest)
+    print("updated for subs", " ".join(subjects))
+
 
 if __name__ == '__main__':
    #app.config['UPLOAD_FOLDER'] = "uploads/"
