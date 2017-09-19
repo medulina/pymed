@@ -20,7 +20,28 @@
     <link href="css/papaya.css" rel="stylesheet">
     <link href="css/custom.css" rel="stylesheet">
     <link href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <style>
+    #brainbrowser, canvas {
+       width: 100%;
+       margin: 0;
+       padding: 0;
+     }
 
+     #nav-brain {
+	width: 95%;
+	height: 30%;
+	margin: 2.5%;
+	background-color: black;
+	padding: 5px;
+	border-radius: 25px;
+	opacity: 2.25;
+}
+
+#nav-brain canvas {
+  height: 100%;
+}
+
+    </style>
 
   </head>
 
@@ -93,6 +114,10 @@
           <p><button class="btn btn-info" v-on:click="sendAggtoServer()">Load</button></p>
           <div id="viewer" width="500px;"></div>
 
+          <br>
+          <h3> 3D Surface </h3>
+          <div id="nav-brain">
+          </div>
 
         </main>
 
@@ -119,6 +144,33 @@
     <script src="js/lodash.min.js"></script>
     <script src="js/qs.min.js"></script>
     <script src="js/papaya.js"></script>
+    <script src="js/libs/three.min.js"></script>
+    <script src="js/libs/TrackballControls.js"></script>
+    <script src="js/libs/VTKLoader.js"></script>
+    <script src="js/libs/Projector.js"></script>
+    <script src="js/libs/Detector.js"></script>
+
+    <script src="https://cdn.rawgit.com/akeshavan/roygbiv/master/roygbiv/web/js/brain.utils.js"></script>
+    <script src="js/libs/brain.js"></script>
+
+    <!--<script src="js/brainbrowser/src/brainbrowser/lib/pako.js"></script>
+    <script src="js/brainbrowser/src/brainbrowser/brainbrowser.js"></script>
+    <script src="js/brainbrowser/src/brainbrowser/core/tree-store.js"></script>
+    <script src="js/brainbrowser/src/brainbrowser/lib/config.js"></script>
+    <script src="js/brainbrowser/src/brainbrowser/lib/utils.js"></script>
+    <script src="js/brainbrowser/src/brainbrowser/lib/events.js"></script>
+    <script src="js/brainbrowser/src/brainbrowser/lib/loader.js"></script>
+    <script src="js/brainbrowser/src/brainbrowser/lib/color-map.js"></script>
+    <script src="js/brainbrowser/src/brainbrowser/surface-viewer.js"></script>
+    <script src="js/brainbrowser/src/brainbrowser/surface-viewer/lib/three.js"></script>
+    <script src="js/brainbrowser/src/brainbrowser/surface-viewer/lib/parse-intensity-data.js"></script>
+    <script src="js/brainbrowser/src/brainbrowser/surface-viewer/modules/annotations.js"></script>
+    <script src="js/brainbrowser/src/brainbrowser/surface-viewer/modules/color.js"></script>
+    <script src="js/brainbrowser/src/brainbrowser/surface-viewer/modules/loading.js"></script>
+    <script src="js/brainbrowser/src/brainbrowser/surface-viewer/modules/rendering.js"></script>
+    <script src="js/brainbrowser/src/brainbrowser/surface-viewer/modules/views.js"></script>-->
+
+
     <script src="js/myscripts.js"></script>
 
 

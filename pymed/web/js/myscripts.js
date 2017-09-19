@@ -1,3 +1,78 @@
+
+
+/*BrainBrowser.config.set("model_types.vtk.worker", "vtk.worker.js");
+//BrainBrowser.config.set("intensity_data_types.csv.worker", "csv.intensity.worker.js");
+//BrainBrowser.config.set("intensity_data_types.csvcolumn.worker", "csvcolumn.intensity.worker.js");
+//BrainBrowser.config.set('worker_dir', '../brainbrowser/src/brainbrowser/workers/');
+BrainBrowser.config.set('worker_dir', 'js/brainbrowser/build/brainbrowser-2.5.2/workers/');
+BrainBrowser.config.set("color_maps", [
+  {
+    name: "Spectral",
+    url: "color-maps/spectral.txt",
+  },
+  {
+    name: "Thermal",
+    url: "color-maps/thermal.txt",
+  },
+  {
+    name: "Gray",
+    url: "color-maps/gray-scale.txt",
+  },
+  {
+    name: "Blue",
+    url: "color-maps/blue.txt",
+  },
+  {
+    name: "Green",
+    url: "color-maps/green.txt",
+  }
+]);
+
+var COLORS = {
+WHITE: 0xFFFFFF,
+BLACK: 0x101010
+};
+
+var colormaps = {}
+BrainBrowser.config.get("color_maps").forEach(function(val, idx, arr){colormaps[val.name] = val.url})
+
+function doBB(){
+
+var target = document.getElementById('brainbrowser')
+
+BrainBrowser.SurfaceViewer.start('brainbrowser', function(viewer){
+
+  viewer.addEventListener('displaymodel', function(brainBrowserModel) {
+        console.log('We have a model!');
+      });
+
+  viewer.render();
+  window.viewer = viewer
+  viewer.loadModelFromURL("uploads/sub000/crowd.vtk")
+
+});
+
+}*/
+
+
+function load_surfaces(crowd_url, truth_url){
+  var b = new Brain({
+                      divID: "nav-brain",
+                      manifest: [
+                        {
+                          url: crowd_url,
+                          mesh_props: {name: "crowd", color: [1,1,1], opacity: 0.5}
+                        },
+                        {
+                          url: truth_url,
+                          mesh_props: {name: "truth", color: [0,0,1], opacity: 0.5}
+                        }
+                      ]
+                      })
+  return b
+}
+
+
 // register the grid component
 Vue.component('demo-grid', {
   template: '#grid-template',
@@ -72,6 +147,7 @@ var app = new Vue({
   },
   methods: {
     showPapaya: function(){
+      console.log("in show papaya func")
       var subject_obj = this.currentSubject
       params = [];
       params["worldSpace"] = false;
@@ -119,8 +195,9 @@ var app = new Vue({
          success: function(result) {
              console.log(result);
              papaya.Container.addImage(papayaContainers.length - 1,
-               result, {"crowd.nii.gz": {"min": 0, "max": 10, alpha: 0.5, "lut": "Red Overlay"}}
+               result, {"crowd.nii.gz": {"min": 0, "max": 10, alpha: 0.5, "lut": "Blue Overlay"}}
              )
+             load_surfaces(app.currentSubject.mask_server_path.replace(".nii.gz", ".vtk"), result.replace(".nii.gz", ".vtk"))
          }
       });
     }

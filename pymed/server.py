@@ -7,6 +7,7 @@ from glob import glob
 import base64
 import numpy as np
 import nibabel as nib
+from surface import create_vtk
 
 app = Flask(__name__)
 # Got from https://www.tutorialspoint.com/flask/flask_file_uploading.htm
@@ -65,6 +66,7 @@ def getAggNii():
     # find our subject and their base image
     subject = data[0]["subject"]
     subject_nii_file = [b for b in glob("uploads/{}/*.nii.gz".format(subject)) if "base" in b][0]
+    subject_mask_file = [b for b in glob("uploads/{}/*.nii.gz".format(subject)) if "mask" in b][0]
 
     # load image and convert to IPL
     img_data = nib.load(subject_nii_file)
@@ -97,6 +99,13 @@ def getAggNii():
 
     out_file = os.path.join("uploads", subject, "crowd.nii.gz")
     nib.Nifti1Image(crowd_data, aff).to_filename(out_file)
+
+    #surface stuff
+    out_vtk = out_file.replace(".nii.gz", ".vtk")
+    create_vtk(out_file, out_vtk)
+
+    out_truth_vtk = subject_mask_file.replace(".nii.gz", ".vtk")
+    create_vtk(subject_mask_file, out_truth_vtk)
 
     return out_file
 
