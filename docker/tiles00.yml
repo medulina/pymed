@@ -1,0 +1,9 @@
+provider:
+  name: faas
+  gateway: http://localhost:8080
+
+functions:
+  tiles00:
+    lang: Dockerfile
+    handler: ./tiles00
+    image: akeshavan/tiles00
