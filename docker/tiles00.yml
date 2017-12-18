@@ -3,7 +3,7 @@ provider:
   gateway: http://localhost:8080
 
 functions:
-  tiles00:
+  tiles02:
     lang: Dockerfile
     handler: ./tiles00
-    image: akeshavan/tiles00
+    image: akeshavan/tiles02

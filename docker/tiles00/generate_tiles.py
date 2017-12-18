@@ -11,10 +11,12 @@ matplotlib.use('agg')
 from matplotlib.pyplot import *
 import matplotlib.pyplot as plt
 import hashlib
+import simplejson as json
 from nipype.utils.filemanip import load_json
 from subprocess import check_call
 import urllib
 import tempfile
+import sys
 
 def download_image(inp, out):
     urllib.urlretrieve(inp, out)
@@ -206,9 +208,23 @@ def create_tiles(base_file, mask_file, slice_direction,
     print("\n\n\n", output_manifest_file, "\n\n\n")
     return im, base_tile
 
+def get_stdin():
+    buf = ""
+    while(True):
+        line = sys.stdin.readline()
+        buf += line
+        if line == "":
+            break
+    return buf
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
+    st = get_stdin()
+    print(st)
+    args = json.loads(st)
+    print(args)
+    create_tiles(**args)
+
+    """parser = argparse.ArgumentParser()
     parser.add_argument("-b", "--base", dest="base", required=True)
     parser.add_argument("-m", "--mask", dest="mask")
     parser.add_argument("-d", "--dir", dest="slice_dir", required=True)
@@ -237,4 +253,4 @@ if __name__ == "__main__":
                  int(args.vox_thresh),
                  args.use_mp,
                  bool(args.name_by_hash),
-                 args.fov)
+                 args.fov)"""
