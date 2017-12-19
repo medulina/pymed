@@ -17,6 +17,7 @@ from subprocess import check_call
 import urllib
 import tempfile
 import sys
+import base64
 
 def download_image(inp, out):
     urllib.urlretrieve(inp, out)
@@ -114,6 +115,7 @@ def create_tiles(base_file, mask_file, slice_direction,
     base_file = basef
     img_data = nib.load(base_file)
     data = img_data.get_data()
+    full_output = []
 
     if mask_file:
         maskf = join(outdir, "mask.nii.gz")
@@ -121,15 +123,17 @@ def create_tiles(base_file, mask_file, slice_direction,
         mask_file = maskf
         img_mask = nib.load(mask_file)
         mask = img_mask.get_data()
+        use_mask = True
         assert np.isclose(img_data.affine, img_mask.affine, rtol=1e-3, atol=1e-3).all(), "affines are not close!! {} {}".format(img_data.affine, img_mask.affine)
     else:
         mask = base > 0
+        use_mask = False
 
     aff = img_data.affine
     orientation = nib.orientations.io_orientation(aff)
-    print("original image orientation is",
-          "".join(nib.orientations.aff2axcodes(aff)))
-    print("now converting to IPL")
+    #print("original image orientation is",
+    #      "".join(nib.orientations.aff2axcodes(aff)))
+    #print("now converting to IPL")
 
     def toIPL(data):
         data_RAS = nib.orientations.apply_orientation(data, orientation)
@@ -144,8 +148,8 @@ def create_tiles(base_file, mask_file, slice_direction,
     all_data_slicer = [slice(None), slice(None), slice(None)]
 
     num_slices = data_IPL.shape[slicer[slice_direction]]
-    print("total number of slices =", num_slices, "in direction:",
-          slice_direction)
+    #print("total number of slices =", num_slices, "in direction:",
+    #      slice_direction)
     if not os.path.exists(outdir):
         os.makedirs(outdir)
     manifest = {}
@@ -180,15 +184,24 @@ def create_tiles(base_file, mask_file, slice_direction,
             manifest["slices"][slice_num] = dict(hashstr=fname_prefix)
             out_base_filename = join(outdir, "%s.jpg" % (fname_prefix))
 
-            if use_mpl:
-                mplfig(base_tile, out_base_filename)
-            else:
-                im.save(out_base_filename)
+
+            mplfig(base_tile, out_base_filename)
+            entry = {}
+
+            with open(str(out_base_filename), 'rb') as img:
+                entry["base_image"] = base64.b64encode(img.read())
+
 
             manifest["slices"][slice_num]["base_filename"] = out_base_filename
             out_mask_filename = join(outdir, "%s.json" % (fname_prefix))
 
             out_mask_dict = make_mask_dict(mask_tile.T)
+            if use_mask:
+                entry["mask"] = out_mask_dict
+
+            entry["slice"] = slice_num
+            entry["slice_direction"] = slice_direction
+            full_output.append(entry)
             # Width is x and height is y, so we transpose
             save_json(out_mask_filename, out_mask_dict)
             manifest["slices"][slice_num]["mask_filename"] = out_mask_filename
@@ -196,17 +209,16 @@ def create_tiles(base_file, mask_file, slice_direction,
             if custom_fov:
                 manifest["slices"][slice_num]["fov"] = fov.__repr__()
 
-            print("wrote", out_base_filename, out_mask_filename)
+            #print("wrote", out_base_filename, out_mask_filename)
             create_image(out_base_filename, out_mask_filename,
                          out_base_filename.replace(".jpg", ".png"))
 
     save_json(output_manifest_file, manifest)
-    print("\n\n\n", output_manifest_file, "\n\n\n")
-    return im, base_tile, out_mask_dict
+    #print("\n\n\n", output_manifest_file, "\n\n\n")
 
     save_json_pretty(output_manifest_file, manifest)
-    print("\n\n\n", output_manifest_file, "\n\n\n")
-    return im, base_tile
+    #print("\n\n\n", output_manifest_file, "\n\n\n")
+    return full_output
 
 def get_stdin():
     buf = ""
@@ -217,12 +229,18 @@ def get_stdin():
             break
     return buf
 
+def test():
+    data = {"base_file":"https://firebasestorage.googleapis.com/v0/b/my-test-project-aa983.appspot.com/o/base000.nii.gz?alt=media&token=7f296b88-3696-42c0-bfff-5a7c92ce91ce", "mask_file":"https://firebasestorage.googleapis.com/v0/b/my-test-project-aa983.appspot.com/o/mask000.nii.gz?alt=media&token=c80845a4-dcef-4a94-a87e-e74b18d9642b", "slice_direction":"ax"}
+    op = create_tiles(**data)
+    print(json.dumps(op))
+
+
 if __name__ == "__main__":
     st = get_stdin()
-    print(st)
     args = json.loads(st)
-    print(args)
-    create_tiles(**args)
+    op = create_tiles(**args)
+    print(json.dumps(op))
+    #print(op)
 
     """parser = argparse.ArgumentParser()
     parser.add_argument("-b", "--base", dest="base", required=True)
