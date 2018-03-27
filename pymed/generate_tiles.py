@@ -59,7 +59,7 @@ def mplfig(data, outfile):
     ax = plt.Axes(fig, [0., 0., 1., 1.])
     ax.set_axis_off()
     fig.add_axes(ax)
-    ax.imshow(data, aspect='normal', cmap=cm.Greys_r)
+    ax.imshow(data, aspect='auto', cmap=cm.Greys_r)
     fig.savefig(outfile, dpi=data.shape[0])
     plt.close()
 
